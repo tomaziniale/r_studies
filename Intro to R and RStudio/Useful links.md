@@ -4,4 +4,4 @@
 - [R Markdown](http://www.rstudio.com/wp-content/uploads/2016/03/rmarkdown-cheatsheet-2.0.pdf)
 
 ## More Excersises
--[DataCamp](https://www.datacamp.com/courses).
+- [DataCamp](https://www.datacamp.com/courses).

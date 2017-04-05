@@ -346,10 +346,10 @@ nycflights %>% group_by(month) %>% summarise(m=median(dep_delay)) %>% arrange(de
 avoid flying if you really dislike delayed flights, and why? 
 <ol>
 <li> Mean would be more reliable as it gives us the true average. ?</li> 
-<li> Mean would be more reliable as the distribution of delays is symmetric. </li> 
-<li> Median would be more reliable as the distribution of delays is skewed. </li> 
+<li> Mean would be more reliable as the distribution of delays is symmetric. ?</li> 
+<li> Median would be more reliable as the distribution of delays is skewed. x</li> 
 <li> Median would be more reliable as the distribution of delays is symmetric. </li>
-<li> Both give us useful information. </li>
+<li> Both give us useful information. ?</li>
 </ol>
 
 

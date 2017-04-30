@@ -1,0 +1,204 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+Make sure your data and R Markdown files are in the same directory. When loaded
+your data file will be called `brfss2013`. Delete this note when before you submit 
+your work. 
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+BRFSS conducts both landline telephone- and cellular telephone-based surveys. In conducting the BRFSS landline telephone survey, interviewers collect data from a randomly selected adult in a household. In conducting the cellular telephone version of the BRFSS questionnaire, interviewers collect data from an adult who participates by using a cellular telephone and resides in a private residence or college housing. 
+This is an observational prospective study hence the interviewer do not interfere with how the data arrive, they just collect, in other words, observe; In this type os study it's only possible to have an association between the explanatory and response variables, obtaining a general idea for each variable which, later, could be a subject for an experiment study with random assignment making possible to have a final causal connection betweet those variables.
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**  
+The first question explore the relationship between marital status and general health, examining the belief of married people is, in general, healthier than singles meaning that people who are/were married have an average health greater than people who are single/divorced/never married/Separated.
+
+The variables in this study are the following:  
+-`genhlth`: general health  
+-`marital`: marital status  
+All data set will be used for this question except that which the explanatory and response variables are in (Refused, Missing, Don't Know/Not Sure)
+
+
+**Research quesion 2:**  
+The second question explore the relationship between alcohol and/or smoke with a high rate of blood pressure for people who make any kind of extra activity versus who don't smoke and don't drink but also don't do any extra activity. In order to test if a bad habbit could possible be neutralized by a good one.
+
+The variables in this study are the following:  
+- `bphigh4` : Ever Told Blood Pressure High  
+- `drnkany5`: Drink Any Alcoholic Beverages In Past 30 Days  
+- `smoke100`: Smoked At Least 100 Cigarettes in entire life  
+- `exerany2`: Exercise In Past 30 Days  
+
+
+**Research quesion 3:**  
+The third question explore the relationship between sleep time and any kind of disease for males and females, trying to make an association with sleep time for females being more important than sleep time for males based on the general health condition.  
+
+The variables in this study are the following:  
+- `sex`: Respondents Sex  
+- `sleptim1`: How Much Time Do You Sleep  
+- `bphigh4`: Ever Told Blood Pressure High  
+- `cvdcrhd4`: Ever Diagnosed With Angina Or Coronary Heart Disease  
+- `toldhi2`: Ever Told Blood Cholesterol High  
+- `cvdinfr4`: Ever Diagnosed With Heart Attack  
+- `cvdstrk3`: Ever Diagnosed With A Stroke  
+- `addepev2`: Ever Told You Had A Depressive Disorder  
+- `chckidny`: (Ever Told) You Have Kidney Disease?  
+- `diabete3`: (Ever Told) You Have Diabetes  
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+**Research quesion 1:**
+
+```{r}
+# first we need to check if the variables `marital` and `genhtlh` are numeric or categorical (factor)
+attributes(brfss2013$marital) 
+attributes(brfss2013$genhlth) 
+# let's see an overview about how the data is distributed
+table(brfss2013$marital, brfss2013$genhlth)  
+# Looking at the overview we noticed that we need to 
+# 1. Save the summary into a new variable called maritaldist
+# 2. filter out `NA` values from both categories
+# 3. Simplify the categories by Married = Married or Widowed; Happier = Excellent or Very Good, everything else will be the opposite
+maritaldist <- filter(brfss2013, marital != '' & genhlth != '') %>% mutate(happier = ifelse(genhlth == "Excellent" | genhlth == "Very good", "more", "less" ), married = ifelse(marital == "Married" | marital == "Widowed", "yes", "no"))  %>% select(married, happier)
+# let's add the relative frequency for each category
+maritaldist <- maritaldist %>% group_by(married, happier) %>% summarise(count=n()) %>% mutate(rfreq = count / sum(count))
+# Plot and analyse the results
+maritaldist  
+ggplot(data=maritaldist, aes(x=married, fill=happier, y=rfreq)) + geom_bar(stat="identity")
+# Married_Happy = 0.517
+# Single_Happy = 0.465
+# The proportion of Married_Happy and Single_Happy (blue squares) are nearly the same, indicating that these variables are independent.
+```
+
+
+
+**Research quesion 2:**
+
+```{r}
+# Let's start with a quick overview between the variables
+table(brfss2013$bphigh4)
+table(brfss2013$drnkany5)
+table(brfss2013$smoke100)
+table(brfss2013$exerany2)
+# For the variable bphigh4 we're interested only in 'yes' or 'no' answers. Let's create another dataset only with these variables
+badgooddhab <- filter(brfss2013, bphigh4 == "Yes" | bphigh4== "No") %>% select(bphigh4, drnkany5, smoke100, exerany2)
+# Let's filter out NA answers
+badgooddhab <- filter(badgooddhab, !is.na(bphigh4) & !is.na(drnkany5) & !is.na(smoke100) & !is.na(exerany2)) %>% select(bphigh4, drnkany5, smoke100, exerany2)
+# And add a variable for (drink or smoke) = Yes, meaning a bad habbit  
+badgooddhab <- badgooddhab %>% mutate(drnsmk = ifelse(drnkany5 == "Yes" | smoke100 == "Yes", "Yes", "No"))
+# Since we´re interested only in drink or smoke variable, for the first dataset will do the follow  
+# 1. Filter drnsmk == Yes  
+# 3. Calculate the relative frequency based on physical activity  
+# 4. Call this as badh  
+badh <- filter(badgooddhab, drnsmk == "Yes") %>% group_by(bphigh4, exerany2) %>% summarise(total = n()) %>% mutate(rfreq = total / sum(total))
+# Plot the results for bad habits
+ggplot(data=badh, aes(x=bphigh4, fill=exerany2, y=rfreq)) + geom_bar(stat="identity", position = "dodge")
+```
+  
+This graph about people who smoke or drink tell us that the ocurrences of high blood pressure is greater for people who do any extra activity than who don't do any activity.
+
+```{r}
+# For the second dataset, let's look for non drink or smoke people
+# 2. Filter drnsmk == No
+# 3. Calculate the relative frequency based on physical activity
+goodh <- filter(badgooddhab, drnsmk == "No") %>% group_by(bphigh4, exerany2) %>% summarise(total = n()) %>% mutate(rfreq = total / sum(total))
+# Plot the results for good habits
+ggplot(data=goodh, aes(x=bphigh4, fill=exerany2, y=rfreq)) + geom_bar(stat="identity", position = "dodge")
+```
+  
+  This graph about people who don't smoke or drink tell us that the ocurrences of high blood pressure is also greater for people who do any physical activity than who don't do any activity.  
+  
+  Would the high blood pressure be related more with physical activity than bad habbits? Let's find out.
+```{r}
+# First let's group by high blood pressure and physical activity, and add a relative frequency
+hbpexer <- badgooddhab %>% group_by(bphigh4, exerany2) %>% summarise(total = n()) %>% mutate(rfreq = total / sum(total))
+# then plot the results
+ggplot(data=hbpexer, aes(x=bphigh4, fill=exerany2, y=rfreq)) + geom_bar(stat="identity", position = "dodge")
+```
+  
+  There are more people with high blood pressure who do any exercise than who don't, so the fact for having higher blood pressure it's not related only if the person drink or smoke and it seem's to be more related to wether the person does any physical activity.
+
+**Research quesion 3:**
+
+```{r}
+# First let's be familiar with our variables
+brfss2013 %>% select(sex, sleptim1, bphigh4, cvdcrhd4, toldhi2, cvdinfr4, cvdstrk3, addepev2, chckidny, diabete3) %>% str()
+# And then create a new dataset filtering out NA values and selecting just the variables which we need
+slepcare <- filter(brfss2013, !is.na(sex),!is.na(sleptim1),!is.na(bphigh4),!is.na(bpmeds), !is.na(toldhi2),!is.na(cvdcrhd4),!is.na(cvdinfr4),!is.na(cvdstrk3),!is.na(addepev2),!is.na(chckidny),!is.na(diabete3)) %>% select(sex, sleptim1, bphigh4, cvdcrhd4, toldhi2, cvdinfr4, cvdstrk3, addepev2, chckidny, diabete3)
+
+# Some variables have more than YES|NO answers, let's remove these unwanted values
+yesno <- as.factor(c("Yes","No"))
+slepcare <- filter(slepcare, bphigh4 %in% yesno)
+slepcare <- filter(slepcare, diabete3 %in% yesno)
+```
+  
+Let's get an overview about how people are sleeping
+```{r} 
+# Median and Standart Deviation for Males and Females, it's very similar
+median(filter(slepcare, sex=="Male")$sleptim1); sd(filter(slepcare, sex=="Male")$sleptim1)
+median(filter(slepcare, sex=="Female")$sleptim1); sd(filter(slepcare, sex=="Female")$sleptim1)
+# I choose to use median instead of mean to remove those values near 24 hours per day and 1 hour per day of slep time.
+# To group the sleep time, let's calculate if the person sleeps more or equal than the median, using the calculated median for each sex.
+slepcare <- slepcare %>% mutate(slepgtm = ifelse(sex == "Male", ifelse(sleptim1 >= 7, "Yes", "No"), ifelse(sleptim1 >= 7, "Yes", "No")))
+
+# Group by sex and summarise into a new dataset to make easier to plot
+dist1 <- slepcare %>% group_by(sex, slepgtm) %>% summarise(count = n()) %>% mutate(rfreq= count / sum(count))
+ggplot(data=dist1, aes(x=sex, y=rfreq, fill=slepgtm)) + geom_bar(stat="identity", position="dodge")
+# It's seems that people from both sex are sleeping more than the median.
+```
+  
+To generate a numeric value for general condition (gencond) lets attribute the number 1 when the answer is YES and 0 for NO and then sum up all fields.
+```{r}
+# new variable called gencond, sum of diseases
+slepcare <- slepcare %>% mutate(gencond = (ifelse(bphigh4=="Yes",1,0) + ifelse(cvdcrhd4=="Yes",1,0) + ifelse(toldhi2=="Yes",1,0) + ifelse(cvdinfr4=="Yes",1,0)+ ifelse(cvdstrk3=="Yes",1,0)+ ifelse(addepev2=="Yes",1,0)+ ifelse(chckidny=="Yes",1,0)+ ifelse(diabete3=="Yes",1,0)))
+```
+
+**Male distribuition**
+
+```{r}
+# Grouping all data in another dataset by general condition and if slept >= median, generate a relative frequency and analyze the results
+maledist <- filter(slepcare, sex=="Male") %>% group_by(gencond, slepgtm) %>%  summarise(count = n()) %>% mutate(rfreq = count / sum(count))
+# plot by relative frequency
+ggplot(data= maledist, aes(x=gencond, fill=slepgtm, y=rfreq)) + geom_bar(stat="identity", position="dodge")
+# The probability of sleeping more than the median is more commom for males with the lower count of diseases (gencond), indicating that those variables could be associated.
+```
+
+**Female distribuition**
+```{r}
+# Grouping all data in another dataset by general condition and if slept >= median, generate a relative frequency and analyze the results
+femaledist <- filter(slepcare, sex=="Female") %>% group_by(gencond, slepgtm) %>%  summarise(count = n()) %>% mutate(rfreq = count / sum(count))
+# plot by relative frequency
+ggplot(data= femaledist, aes(x=gencond, fill=slepgtm, y=rfreq)) + geom_bar(stat="identity", position="dodge")
+# For females we see the same pattern but much more defined. The more diseases, the less they sleep.
+```
+
+In conclusion the sleep time can be associated with a good health condition or the sleep time is well influenced by a bad health condition. We can't just assume that the more you sleep the healthier you are.

@@ -1,0 +1,155 @@
+
+<!-- saved from url=(0120)https://s3.amazonaws.com/coursera-uploads/peer-review/cef3d05d7eabb3c6343db282e4708d24/Carlton_Week5FinalAssignment.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252"></head><body>---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+```{r load-data}
+load("//LOF-FPS01/RedirectedFolders/rcarlton/My Documents/Coursera-RCourse/brfss2013.Rdata")
+```
+
+* * *
+
+## Part 1: Data
+The data being used in this project was collected by the Centers for Disease Control (CDC), through the state-based Behavioral Risk Factor Surveillance SYstem (BRFSS). They used an annual questionaire to survey residents on their risk behaviors and preventative health practices with regard to their health status. 
+
+According to the BRFSS website, and description provided, the type of data collected is through phone surveys, meaning the data is collected through voluntary response.  So while this may be a representation of the total population, there is inherent bias being intrududed as well.  The particular type of bias is non-response bias meaning, while the states may originally plan to represent the entire population in their surveys, not everyone in the sample will respond, and therefore, the total population may not be fully represented. 
+
+Even though all 50 states, plus the District of Columbia, Guam, and the Commonwealth of Puerto Rico are all surveyed, there may be differences in the number of responses among these territories.  If this is the case, then this bias may disqualify the data as being a true representation of the entire country, and rather be more applicable to individual states or territories. 
+
+The data was also collected using both land lines and cell phones.  In landline samples, they used a disproportionate stratified sampling (DSS) design, meaning the sample size is not proportionate to the population size. They used two lists of landlines, listed and not listed, and more frequently sampled from the listed telephone numbers. Using this sampling design is considered to be more efficient than simple random sampling according to BRFSS. For cell phone sampling, they used a simple random sampling and there is no introduced bias to the sampling of this group, meaning every cell phone number had an equal chance of being called.  
+
+There was a combination of categorical and numerical data collected in this data set, and the categorical data might provide some clear trends as to whether or not the data is a true representation of the total population.  A simple way to check this would be to choose a parameter and create a histogram to see if all parts of this category are equally represented.
+
+
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+Does the number of completed interviews from each state or territory truly represent the total population? Is there equally proportional representation from each state/territory? 
+
+I am curious to know whether or not the data set provided is a true representation of the total population.  Given we dont know the exact ages of the respondents, a state-by-state difference might explain some trends.  For example, certain areas have a higher proportion of older populations which may explain some of the trends observed in the data.  Determining whether or not there are states that might have a higher total number of observations might help parse out these trends. 
+
+**Research quesion 2:**
+Of those surveyed, is there a difference in the number of males and females that have receieved an annual check up as preventative healthcare within the past year? Are men or women more likely to get an annual check up? Does having health insurance seem to make a difference on whether or not an annual check up was receieved?
+
+Annual check up's are important to catching medical issues that may arrise.  Most health insurance offers one free annual check up to each person enrolled.  I am interested to see if there is a difference in gender and whether a person has health insurance or not, and their likelihood of receieving an annual check up. 
+
+**Research quesion 3:**
+Is there a relationship between exercising within the last 30 days and a persons overall health? Is there a difference between males and females surveyed?
+
+Exercising has been pushed as being something that is important to the overall population.  I am interested in finding out if there is a correlation between exercise, overall health, and gender.  
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Research quesion 1:**
+Does the number of completed interviews from each state or territory truly represent the total population? Is there equally proportional representation from each state/territory? 
+
+To answer this question, I first filtered the data to use only complete interveiws. 
+```{r}
+StateCompleted &lt;- brfss2013 %&gt;% filter(dispcode== "Completed interview")
+StatesRep&lt;- StateCompleted %&gt;% group_by(dispcode,X_state) %&gt;% tally()
+```
+
+Next, I plotted the data using a histogram to determine if the data is equally represented, or if there are any outliers. I also determined the mean, median, adn IQR to better understand the patterns of the distribution. 
+```{r}
+ggplot(data = StatesRep, aes(x=n))+geom_histogram(binwidth = 1000)
+StatesRep %&gt;% summarise(median(n))
+StatesRep %&gt;% summarise(mean(n))
+StatesRep %&gt;% summarise(IQR(n))
+```
+
+Finally I created a box-plot to more clearly decipher if there are outliers that may provide bias to the data.
+
+```{r}
+ggplot(data = StatesRep, aes(x=dispcode, y=n))+geom_boxplot()+coord_flip()
+```
+
+The answer to this question is no. Using a frequency table, histogram, and boxplot, there is evidence that there is uneven representation from each state of completed surveys.  In the histogram, the X axis shows the total number of surveys completed in each state, and the y axis, or count is the number of times a group of surveys were completed, binned at every 1000 surveys. As shown in the histogram, there are outliers that make this distribution right skewed. This is also reflected in the boxplot.  This shows there are states with a disproportionately high number of surveys completed.  When going back to the data, Florida surveyed nearly 30,000 resdients where the median number of completed surveys was 7259 residents. The mean number of surveyes completed was slightly higher, 8174 completed surveys, so this shows there could be bias in this data set based on the state surveyed.  
+
+**Research quesion 2:**
+Of those surveyed, is there a difference in the number of males and females that have receieved an annual check up as preventative healthcare within the past year? Are men or women more likely to get an annual check up?
+
+The first thing I did to answer this question was to pull the data I was interested in, which was Sex of interviewee and their response to when they last receieved an annual check up. 
+
+```{r}
+AnnCheckUp &lt;- StateCompleted %&gt;% group_by(sex, checkup1, hlthpln1) %&gt;% tally()
+AnnCheckUp&lt;- na.omit(AnnCheckUp)
+AnnCheckUpRF &lt;- AnnCheckUp %&gt;% mutate("RelFreq"= n/sum(n))
+ggplot(AnnCheckUpRF, aes(x=checkup1, y=RelFreq, fill=factor(hlthpln1)))+ geom_bar(stat="identity", position="dodge")+scale_fill_discrete(name="Insured", breaks= c(1,2), labels=c("Yes", "No"))+xlab("General Health")+ylab("Relative Frequency")+ggtitle("Total Population- Relative Frequency of Annual Checkup")
+AnnCheckUpRF %&gt;% filter(hlthpln1== "No") %&gt;% group_by(checkup1) %&gt;% summarize(mean_checkup= mean(n))
+AnnCheckUpRF %&gt;% filter(hlthpln1== "No") %&gt;% group_by (hlthpln1) %&gt;% summarize(mean_checkup= mean(n)) 
+```
+
+Next, I binned this data by female and male, so I could distinctly look at each of these groups. I omitted any surveys where there was no response, and calculated the relative frequency of each response for each group.  I then plotted the relative frequency to display when each group received their last annual check up.  
+
+```{r}
+AnnCheckUpF &lt;- AnnCheckUp %&gt;% filter(sex=="Female")
+AnnCheckUpF &lt;- AnnCheckUpF %&gt;% mutate("RelFreq"= n/sum(n))
+ggplot(AnnCheckUpF, aes(x=checkup1, y=RelFreq, fill=factor(hlthpln1)), las=2)+ geom_bar(stat="identity", position="dodge")+scale_fill_discrete(name="Gender", breaks= c(1,2), labels=c("Yes", "No"))+xlab("General Health")+ylab("Relative Frequency")+ggtitle("Female Frequency of Annual Checkup")
+AnnCheckUpM &lt;- AnnCheckUp %&gt;% filter(sex=="Male")
+AnnCheckUpM &lt;- na.omit(AnnCheckUpM)
+AnnCheckUpM&lt;- AnnCheckUpM %&gt;% mutate(RelFreq= n/sum(n))
+ggplot(AnnCheckUpM, aes(x=checkup1, y=RelFreq, fill=factor(hlthpln1)), las=2)+ geom_bar(stat="identity", position="dodge")+scale_fill_discrete(name="Gender", breaks= c(1,2), labels=c("Yes", "No"))+xlab("General Health")+ylab("Relative Frequency")+ggtitle("Male Frequency of Annual Checkup")
+```
+
+The answer to this research question is no, based on the relative frequency, there is not a difference between males and females receiving annual check ups within the past year. There is appears to be a correlation between the likelihood of somebody having health insurance and receiving an annual check up.  The number of uninsured, on average, had not receieved and annual check up within the past five years.  By looking at the bar chart showing the relative frequency for both males and females this trend is also visually represented.  This leads me to believe that women are more likely to go in for an annual check up than males. 
+
+**Research quesion 3:**
+Does exercisign in the past 30 days correlate to better general health of a person? Is there a difference between males and females?
+
+To address this question, I first needed to gather the data of interest. In this case, I omitted any data that had no response. 
+
+```{r}
+Exercise &lt;- StateCompleted %&gt;% group_by(sex, genhlth, exerany2) %&gt;% tally()
+ExerciseYN&lt;- na.omit(Exercise)
+```
+
+Next, I combined males and females, calculated the relative frequency, and plotted the relative frequency of exercising within the last 30 days and the overall health reported by the interviewee.  
+
+```{r}
+ExerciseYNRF &lt;- ExerciseYN %&gt;% mutate("RelFreq"= n/sum(n))
+ggplot(ExerciseYNRF, aes(x=genhlth, y=RelFreq, fill=factor(exerany2)))+ geom_bar(stat="identity", position="dodge")+scale_fill_discrete(name="Exercise in last 30 Days", breaks= c(1,2), labels=c("Yes", "No"))+xlab("General Health")+ylab("Relative Frequency")+ggtitle("Total Population- Exercise Vs Health")
+```
+
+Based on this plot, there does seeem to be a strong relationship between someone exercising within the last 30 days and their overall health.  In this graph, the pink represents the responders that said "Yes" to exercising, and the blue represents the respondents that said "No" they had not exercised within the past 30 days. 
+
+Next, I wanted to see if there was a difference between Male and Female responses.  To do this I plotted the relative frequency of a "Yes" (pink) repsonse, and a "No" (blue) response for both Males and Females separately.  
+
+```{r}
+
+ExerciseM&lt;- Exercise %&gt;% filter(sex=="Male")
+ExerciseMYN&lt;- na.omit(ExerciseM)
+ExerciseMYNRF &lt;- ExerciseMYN %&gt;% mutate("RelFreq"= n/sum(n))
+ggplot(ExerciseMYNRF, aes(x=genhlth, y=RelFreq, fill=factor(exerany2)))+ geom_bar(stat="identity", position="dodge")+scale_fill_discrete(name="Exercise in last 30 Days", breaks= c(1,2), labels=c("Yes", "No"))+xlab("General Health")+ylab("Relative Frequency")+ggtitle("Males- Exercise Vs Health")
+ExerciseF&lt;- Exercise %&gt;% filter(sex=="Female")
+ExerciseFYN&lt;- na.omit(ExerciseF)
+ExerciseFYNRF &lt;- ExerciseFYN %&gt;% mutate("RelFreq"= n/sum(n))
+ggplot(ExerciseFYNRF, aes(x=genhlth, y=RelFreq, fill=factor(exerany2)))+ geom_bar(stat="identity", position="dodge")+xlab("General Health")+ylab("Relative Frequency")+scale_fill_discrete(name="Exercise in last 30 Days", breaks= c(1,2), labels=c("Yes", "No"))+ggtitle("Females- Exercise Vs Health")
+```
+
+Based on the calculated relative frequency, and the overall trends shown in the graph, a few observations can be made about the population.  First, nearly identical percentage of males and females that responded "Yes" to exercising and also having Excellent health (85%). As people responded less to exercising, it also appears that their health decreased.  Overall, it can be observed that if you have exercised within the past 30 days, you are more likely to have better health. Those that responed "No", in both Male, Female, and Total Population, there you are more likely to have poor health.  
+
+</body></html>
